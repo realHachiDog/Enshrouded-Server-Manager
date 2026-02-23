@@ -51,8 +51,12 @@ function createTray() {
 app.whenReady().then(() => {
     // Start backend
     serverProcess = fork(path.join(__dirname, 'server.js'), [], {
-        env: { ...process.env, IS_ELECTRON: 'true' }
+        env: { ...process.env, IS_ELECTRON: 'true' },
+        stdio: ['ignore', 'pipe', 'pipe', 'ipc']
     });
+
+    serverProcess.stdout.on('data', (data) => console.log(`[Server] ${data}`));
+    serverProcess.stderr.on('data', (data) => console.error(`[Server Error] ${data}`));
 
     createWindow();
     createTray();

@@ -12,6 +12,16 @@
 </head>
 
 <body class="dark-theme">
+    <!-- Loading / Error State -->
+    <div id="loading-overlay" class="overlay">
+        <div class="modal-card small">
+            <h2 id="loading-title"><i class="fa-solid fa-spinner fa-spin"></i> Csatlakozás...</h2>
+            <p id="loading-msg" class="mt-2">Várakozás a belső szerverre...</p>
+            <button id="btn-retry" class="btn btn-primary mt-3" style="display: none;"
+                onclick="location.reload()">Újrapróbálás</button>
+        </div>
+    </div>
+
     <!-- Setup / Profile Select Overlay -->
     <div id="setup-overlay" class="overlay" style="display: none;">
         <div class="modal-card">

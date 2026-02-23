@@ -7,17 +7,38 @@ let translations = {};
 // INITIALIZATION
 // ---------------------------------------------------------
 async function init() {
-    await fetchSettings();
-    await fetchProfiles();
+    let retries = 0;
+    const maxRetries = 10;
 
-    if (profiles.length === 0) {
-        showProfileSelect();
-        showNewProfileForm();
-    } else if (!activeProfile) {
-        showProfileSelect();
-    } else {
-        loadDashboard();
+    while (retries < maxRetries) {
+        try {
+            await fetchSettings();
+            await fetchProfiles();
+
+            // Success! Hide loading
+            document.getElementById('loading-overlay').style.display = 'none';
+
+            if (profiles.length === 0) {
+                showProfileSelect();
+                showNewProfileForm();
+            } else if (!activeProfile) {
+                showProfileSelect();
+            } else {
+                loadDashboard();
+            }
+            return;
+        } catch (e) {
+            retries++;
+            console.warn(`Connection attempt ${retries} failed...`);
+            document.getElementById('loading-msg').innerText = `Szerver csatlakozás sikertelen (${retries}/${maxRetries})... Újrapróbálás...`;
+            await new Promise(r => setTimeout(r, 1000));
+        }
     }
+
+    // Final fail
+    document.getElementById('loading-title').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Hiba';
+    document.getElementById('loading-msg').innerText = "Nem sikerült kapcsolódni a belső szerverhez. Kérlek indítsd újra a programot!";
+    document.getElementById('btn-retry').style.display = 'block';
 }
 
 async function fetchSettings() {
