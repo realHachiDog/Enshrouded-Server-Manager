@@ -18,6 +18,9 @@ const activeProcesses = {}; // { profileName: childProcess }
 app.use(cors());
 app.use(bodyParser.json());
 
+// Serve static files from the public folder
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
 // ---------------------------------------------------------
 // PATHS & DATA
 // ---------------------------------------------------------
