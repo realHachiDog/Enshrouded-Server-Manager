@@ -60,19 +60,27 @@ function createTray() {
 app.whenReady().then(() => {
     log("--- Application Ready ---");
     const serverPath = path.join(__dirname, 'server.js');
-    log(`Starting server at: ${serverPath}`);
+    log(`Starting server via fork: ${serverPath}`);
 
-    // For packaged app, help fork find the right context
-    serverProcess = fork(serverPath, [], {
-        env: { ...process.env, IS_ELECTRON: 'true' },
-        stdio: ['ignore', 'pipe', 'pipe', 'ipc']
-    });
+    try {
+        // In some environments, fork needs the electron path to know how to run
+        serverProcess = fork(serverPath, [], {
+            execPath: process.execPath,
+            env: { ...process.env, IS_ELECTRON: 'true' },
+            stdio: ['ignore', 'pipe', 'pipe', 'ipc']
+        });
 
-    serverProcess.stdout.on('data', (data) => log(`[Server STDOUT] ${data}`));
-    serverProcess.stderr.on('data', (data) => log(`[Server STDERR] ${data}`));
+        serverProcess.stdout.on('data', (data) => log(`[Server STDOUT] ${data}`));
+        serverProcess.stderr.on('data', (data) => log(`[Server STDERR] ${data}`));
 
-    serverProcess.on('error', (err) => log(`[Server Error] ${err.message}`));
-    serverProcess.on('exit', (code) => log(`[Server Exit] Code: ${code}`));
+        serverProcess.on('error', (err) => log(`[Server Error] ${err.message}`));
+        serverProcess.on('exit', (code) => {
+            log(`[Server Exit] Code: ${code}`);
+            // If it crashes immediately, we might want to tell the user
+        });
+    } catch (e) {
+        log(`[Critical] Fork failed: ${e.message}`);
+    }
 
     createWindow();
     createTray();
