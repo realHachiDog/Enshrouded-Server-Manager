@@ -3,13 +3,21 @@ const path = require('path');
 const { fork } = require('child_process');
 const fs = require('fs');
 
-// Log file needs to be defined after app is ready or use a fixed path initially if top-level
-let LOG_FILE;
+const ROOT_LOG_DIR = path.join(process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + '/Library/Preferences' : '/var/local'), 'EDManager');
+if (!fs.existsSync(ROOT_LOG_DIR)) fs.mkdirSync(ROOT_LOG_DIR, { recursive: true });
+const LOG_FILE = path.join(ROOT_LOG_DIR, 'main_process.log');
+
 const log = (msg) => {
+    const line = `${new Date().toISOString()} - ${msg}\n`;
     console.log(msg);
-    if (!LOG_FILE && app.isReady()) LOG_FILE = path.join(app.getPath('userData'), 'main_process.log');
-    if (LOG_FILE) fs.appendFileSync(LOG_FILE, `${new Date().toISOString()} - ${msg}\n`);
+    try { fs.appendFileSync(LOG_FILE, line); } catch (e) { }
 };
+
+process.on('uncaughtException', (err) => {
+    log(`CRITICAL MAIN ERROR (Uncaught): ${err.stack || err}`);
+});
+
+log("--- Main Process Starting ---");
 
 let mainWindow;
 let tray;
