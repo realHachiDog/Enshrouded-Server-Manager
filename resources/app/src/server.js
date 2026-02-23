@@ -2,8 +2,23 @@ console.log("SERVER_BOOT: Process started");
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const fs = require('fs-extra');
+const fs = require('fs');
 const path = require('path');
+
+// fs-extra polyfills for CommonJS compatibility in packaged app
+const ensureDirSync = (dir) => { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); };
+const readJsonSync = (file) => JSON.parse(fs.readFileSync(file, 'utf8'));
+const writeJsonSync = (file, data, opts) => fs.writeFileSync(file, JSON.stringify(data, null, opts?.spaces || 2));
+const removeSync = (file) => fs.rmSync(file, { recursive: true, force: true });
+const copySync = (src, dest) => {
+    const stats = fs.statSync(src);
+    if (stats.isDirectory()) {
+        ensureDirSync(dest);
+        fs.readdirSync(src).forEach(file => copySync(path.join(src, file), path.join(dest, file)));
+    } else {
+        fs.copyFileSync(src, dest);
+    }
+};
 const { spawn, exec } = require('child_process');
 const pidusage = require('pidusage');
 const archiver = require('archiver');
@@ -43,7 +58,7 @@ const ROOT_DATA_DIR = process.env.APPDATA || (process.platform === 'darwin' ? pr
 const APP_DATA_DIR = path.join(ROOT_DATA_DIR, 'EDManager');
 
 try {
-    fs.ensureDirSync(APP_DATA_DIR);
+    ensureDirSync(APP_DATA_DIR);
 } catch (e) {
     // Fallback to temp if everything fails, but APPDATA should work
     console.error("Critical: Could not create AppData dir", e);
@@ -71,13 +86,13 @@ process.on('uncaughtException', (err) => {
     log(`CRITICAL ERROR: ${err.stack || err}`);
 });
 
-if (fs.existsSync(PROFILES_FILE)) profiles = fs.readJsonSync(PROFILES_FILE);
-if (fs.existsSync(TEMPLATES_FILE)) templates = fs.readJsonSync(TEMPLATES_FILE);
-if (fs.existsSync(SETTINGS_FILE)) globalSettings = fs.readJsonSync(SETTINGS_FILE);
+if (fs.existsSync(PROFILES_FILE)) profiles = readJsonSync(PROFILES_FILE);
+if (fs.existsSync(TEMPLATES_FILE)) templates = readJsonSync(TEMPLATES_FILE);
+if (fs.existsSync(SETTINGS_FILE)) globalSettings = readJsonSync(SETTINGS_FILE);
 
-const saveProfiles = () => fs.writeJsonSync(PROFILES_FILE, profiles, { spaces: 2 });
-const saveTemplates = () => fs.writeJsonSync(TEMPLATES_FILE, templates, { spaces: 2 });
-const saveSettings = () => fs.writeJsonSync(SETTINGS_FILE, globalSettings, { spaces: 2 });
+const saveProfiles = () => writeJsonSync(PROFILES_FILE, profiles, { spaces: 2 });
+const saveTemplates = () => writeJsonSync(TEMPLATES_FILE, templates, { spaces: 2 });
+const saveSettings = () => writeJsonSync(SETTINGS_FILE, globalSettings, { spaces: 2 });
 
 // ---------------------------------------------------------
 // UTILS
@@ -183,7 +198,7 @@ app.get('/api/config/:profile', (req, res) => {
     const p = getPaths(getProfile(req.params.profile));
     if (!p || !fs.existsSync(p.config)) return res.status(404).json({ error: 'Config not found' });
     try {
-        const config = fs.readJsonSync(p.config);
+        const config = readJsonSync(p.config);
         let password = "";
         if (config.userGroups) {
             const group = config.userGroups.find(g => g.name === 'Admin' || g.name === 'Friend');
@@ -201,8 +216,8 @@ app.post('/api/config/:profile', async (req, res) => {
         if (fs.existsSync(p.config)) {
             // Backup before write
             const backupPath = p.config + '.original.bak';
-            if (!fs.existsSync(backupPath)) fs.copySync(p.config, backupPath);
-            config = fs.readJsonSync(p.config);
+            if (!fs.existsSync(backupPath)) copySync(p.config, backupPath);
+            config = readJsonSync(p.config);
         }
 
         if (req.body.name) config.name = req.body.name;
@@ -212,7 +227,7 @@ app.post('/api/config/:profile', async (req, res) => {
             });
         }
 
-        fs.writeJsonSync(p.config, config, { spaces: '\t' });
+        writeJsonSync(p.config, config, { spaces: '\t' });
         res.json({ success: true });
     } catch (e) { res.status(500).json({ error: 'Write error' }); }
 });
@@ -265,8 +280,8 @@ app.post('/api/backups/rollback/:profile', async (req, res) => {
 
     try {
         // Clear current savegame
-        if (fs.existsSync(p.save)) fs.removeSync(p.save);
-        fs.ensureDirSync(p.save);
+        if (fs.existsSync(p.save)) removeSync(p.save);
+        ensureDirSync(p.save);
 
         // Use powershell to extract if needed, or a library. 
         // For professional feel, we already have archiver for zipping, but we need unzipping.
@@ -305,7 +320,7 @@ app.post('/api/backups/create/:profile', async (req, res) => {
     const p = getPaths(getProfile(req.params.profile));
     if (!fs.existsSync(p.save)) return res.status(404).json({ error: 'Savegame folder not found' });
 
-    fs.ensureDirSync(p.backups);
+    ensureDirSync(p.backups);
     const filename = `backup_${new Date().toISOString().replace(/[:.]/g, '-')}.zip`;
     const output = fs.createWriteStream(path.join(p.backups, filename));
     const archive = archiver('zip', { zlib: { level: 9 } });
@@ -358,7 +373,7 @@ nodeCron.schedule('*/5 * * * *', async () => {
 
         // Simple logic: check if last backup for this profile is older than interval
         const p = getPaths(profile);
-        if (!fs.existsSync(p.backups)) fs.ensureDirSync(p.backups);
+        if (!fs.existsSync(p.backups)) ensureDirSync(p.backups);
 
         const files = fs.readdirSync(p.backups).filter(f => f.startsWith('auto_'));
         let needsBackup = true;
