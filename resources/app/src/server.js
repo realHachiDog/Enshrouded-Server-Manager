@@ -162,6 +162,17 @@ app.post('/api/discord/admin-msg/:profile', async (req, res) => {
     res.json({ success: true });
 });
 
+app.get('/api/settings', (req, res) => res.json(globalSettings));
+app.post('/api/settings', (req, res) => {
+    globalSettings = { ...globalSettings, ...req.body };
+    saveSettings();
+    res.json({ success: true });
+});
+
+app.get('/api/stats/:profile', (req, res) => {
+    res.json(resourceHistory[req.params.profile] || []);
+});
+
 // ---------------------------------------------------------
 // API: SERVER CONTROL & CONFIG
 // ---------------------------------------------------------
