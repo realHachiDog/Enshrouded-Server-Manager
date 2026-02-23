@@ -1,3 +1,4 @@
+console.log("SERVER_BOOT: Process started");
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');

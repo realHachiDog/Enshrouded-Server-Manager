@@ -66,7 +66,11 @@ app.whenReady().then(() => {
         // In some environments, fork needs the electron path to know how to run
         serverProcess = fork(serverPath, [], {
             execPath: process.execPath,
-            env: { ...process.env, IS_ELECTRON: 'true' },
+            env: {
+                ...process.env,
+                IS_ELECTRON: 'true',
+                ELECTRON_RUN_AS_NODE: '1'
+            },
             stdio: ['ignore', 'pipe', 'pipe', 'ipc']
         });
 
