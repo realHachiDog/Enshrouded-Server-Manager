@@ -28,18 +28,28 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = 3001;
 
-// Path to log server issues - handled in PATHS section below
-let logStream;
+const ROOT_DATA_DIR = process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + '/Library/Preferences' : '/var/local');
+const APP_DATA_DIR = path.join(ROOT_DATA_DIR, 'EDManager');
+if (!fs.existsSync(APP_DATA_DIR)) fs.mkdirSync(APP_DATA_DIR, { recursive: true });
+
+const LOG_FILE = path.join(APP_DATA_DIR, 'server_boot.log');
+
 const log = (msg) => {
+    const line = `${new Date().toISOString()} - ${msg}\n`;
     console.log(msg);
-    if (logStream) logStream.write(`${new Date().toISOString()} - ${msg}\n`);
+    try { fs.appendFileSync(LOG_FILE, line); } catch (e) { }
 };
 
-log("--- Server starting ---");
 process.on('uncaughtException', (err) => {
-    log(`CRITICAL ERROR: ${err.stack || err}`);
+    log(`CRITICAL ERROR (Uncaught): ${err.stack || err}`);
     process.exit(1);
 });
+
+process.on('unhandledRejection', (reason, promise) => {
+    log(`CRITICAL ERROR (Unhandled Rejection): ${reason}`);
+});
+
+log("--- Server starting ---");
 
 // Internal state
 const activeProcesses = {}; // { profileName: childProcess }
@@ -54,8 +64,6 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // PATHS & DATA
 // ---------------------------------------------------------
 // Always prefer APPDATA on Windows for packaged apps
-const ROOT_DATA_DIR = process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + '/Library/Preferences' : '/var/local');
-const APP_DATA_DIR = path.join(ROOT_DATA_DIR, 'EDManager');
 
 try {
     ensureDirSync(APP_DATA_DIR);
@@ -67,7 +75,6 @@ try {
 const PROFILES_FILE = path.join(APP_DATA_DIR, 'profiles.json');
 const TEMPLATES_FILE = path.join(APP_DATA_DIR, 'templates.json');
 const SETTINGS_FILE = path.join(APP_DATA_DIR, 'settings.json');
-const LOG_FILE = path.join(APP_DATA_DIR, 'server_boot.log');
 
 let profiles = [];
 let templates = [];
@@ -75,16 +82,7 @@ let globalSettings = { language: 'hu', activeProfile: null };
 let resourceHistory = {}; // { profileName: [{time, cpu, ram}] }
 
 // Load Data
-if (fs.existsSync(LOG_FILE)) {
-    try { logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' }); } catch (e) { }
-} else {
-    try { logStream = fs.createWriteStream(LOG_FILE, { flags: 'w' }); } catch (e) { }
-}
-
-log("--- Server starting ---");
-process.on('uncaughtException', (err) => {
-    log(`CRITICAL ERROR: ${err.stack || err}`);
-});
+log("Loading data files...");
 
 if (fs.existsSync(PROFILES_FILE)) profiles = readJsonSync(PROFILES_FILE);
 if (fs.existsSync(TEMPLATES_FILE)) templates = readJsonSync(TEMPLATES_FILE);
