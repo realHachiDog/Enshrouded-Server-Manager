@@ -10,7 +10,7 @@ const nodeCron = require('node-cron');
 const fetch = require('node-fetch');
 
 const app = express();
-const PORT = 3000;
+const PORT = 3001;
 
 // Path to log server issues - handled in PATHS section below
 let logStream;
@@ -172,6 +172,8 @@ app.post('/api/settings', (req, res) => {
 app.get('/api/stats/:profile', (req, res) => {
     res.json(resourceHistory[req.params.profile] || []);
 });
+
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // ---------------------------------------------------------
 // API: SERVER CONTROL & CONFIG
@@ -378,4 +380,4 @@ nodeCron.schedule('*/5 * * * *', async () => {
     }
 });
 
-app.listen(PORT, () => console.log(`EDManager Backend listening on port ${PORT}`));
+app.listen(PORT, '127.0.0.1', () => console.log(`EDManager Backend listening on 127.0.0.1:${PORT}`));

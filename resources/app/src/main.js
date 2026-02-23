@@ -29,7 +29,7 @@ function createWindow() {
         }
     });
 
-    mainWindow.loadURL('http://localhost:3000');
+    mainWindow.loadURL('http://127.0.0.1:3001');
 
     // Hide to tray on close
     mainWindow.on('close', (event) => {
