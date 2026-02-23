@@ -12,11 +12,12 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = 3000;
 
-// Path to log server issues
-const LOG_FILE = path.join(process.env.APPDATA || __dirname, 'EDManager', 'server_boot.log');
-fs.ensureDirSync(path.dirname(LOG_FILE));
-const logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
-const log = (msg) => logStream.write(`${new Date().toISOString()} - ${msg}\n`);
+// Path to log server issues - handled in PATHS section below
+let logStream;
+const log = (msg) => {
+    console.log(msg);
+    if (logStream) logStream.write(`${new Date().toISOString()} - ${msg}\n`);
+};
 
 log("--- Server starting ---");
 process.on('uncaughtException', (err) => {
@@ -36,12 +37,21 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // ---------------------------------------------------------
 // PATHS & DATA
 // ---------------------------------------------------------
-const APP_DATA_DIR = process.env.APPDATA ? path.join(process.env.APPDATA, 'EDManager') : path.join(__dirname, '..', 'data');
-fs.ensureDirSync(APP_DATA_DIR);
+// Always prefer APPDATA on Windows for packaged apps
+const ROOT_DATA_DIR = process.env.APPDATA || (process.platform === 'darwin' ? process.env.HOME + '/Library/Preferences' : '/var/local');
+const APP_DATA_DIR = path.join(ROOT_DATA_DIR, 'EDManager');
+
+try {
+    fs.ensureDirSync(APP_DATA_DIR);
+} catch (e) {
+    // Fallback to temp if everything fails, but APPDATA should work
+    console.error("Critical: Could not create AppData dir", e);
+}
 
 const PROFILES_FILE = path.join(APP_DATA_DIR, 'profiles.json');
 const TEMPLATES_FILE = path.join(APP_DATA_DIR, 'templates.json');
 const SETTINGS_FILE = path.join(APP_DATA_DIR, 'settings.json');
+const LOG_FILE = path.join(APP_DATA_DIR, 'server_boot.log');
 
 let profiles = [];
 let templates = [];
@@ -49,6 +59,17 @@ let globalSettings = { language: 'hu', activeProfile: null };
 let resourceHistory = {}; // { profileName: [{time, cpu, ram}] }
 
 // Load Data
+if (fs.existsSync(LOG_FILE)) {
+    try { logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' }); } catch (e) { }
+} else {
+    try { logStream = fs.createWriteStream(LOG_FILE, { flags: 'w' }); } catch (e) { }
+}
+
+log("--- Server starting ---");
+process.on('uncaughtException', (err) => {
+    log(`CRITICAL ERROR: ${err.stack || err}`);
+});
+
 if (fs.existsSync(PROFILES_FILE)) profiles = fs.readJsonSync(PROFILES_FILE);
 if (fs.existsSync(TEMPLATES_FILE)) templates = fs.readJsonSync(TEMPLATES_FILE);
 if (fs.existsSync(SETTINGS_FILE)) globalSettings = fs.readJsonSync(SETTINGS_FILE);
