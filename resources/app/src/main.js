@@ -1,6 +1,12 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, dialog } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
+const fs = require('fs');
+
+const LOG_FILE = path.join(app.getPath('userData'), 'main_process.log');
+const log = (msg) => {
+    console.log(msg);
+    fs.appendFileSync(LOG_FILE, `${new Date().toISOString()} - ${msg}\n`);
+};
 
 let mainWindow;
 let tray;
@@ -49,14 +55,21 @@ function createTray() {
 }
 
 app.whenReady().then(() => {
-    // Start backend
-    serverProcess = fork(path.join(__dirname, 'server.js'), [], {
+    log("--- Application Ready ---");
+    const serverPath = path.join(__dirname, 'server.js');
+    log(`Starting server at: ${serverPath}`);
+
+    // For packaged app, help fork find the right context
+    serverProcess = fork(serverPath, [], {
         env: { ...process.env, IS_ELECTRON: 'true' },
         stdio: ['ignore', 'pipe', 'pipe', 'ipc']
     });
 
-    serverProcess.stdout.on('data', (data) => console.log(`[Server] ${data}`));
-    serverProcess.stderr.on('data', (data) => console.error(`[Server Error] ${data}`));
+    serverProcess.stdout.on('data', (data) => log(`[Server STDOUT] ${data}`));
+    serverProcess.stderr.on('data', (data) => log(`[Server STDERR] ${data}`));
+
+    serverProcess.on('error', (err) => log(`[Server Error] ${err.message}`));
+    serverProcess.on('exit', (code) => log(`[Server Exit] Code: ${code}`));
 
     createWindow();
     createTray();

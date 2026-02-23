@@ -12,6 +12,18 @@ const fetch = require('node-fetch');
 const app = express();
 const PORT = 3000;
 
+// Path to log server issues
+const LOG_FILE = path.join(process.env.APPDATA || __dirname, 'EDManager', 'server_boot.log');
+fs.ensureDirSync(path.dirname(LOG_FILE));
+const logStream = fs.createWriteStream(LOG_FILE, { flags: 'a' });
+const log = (msg) => logStream.write(`${new Date().toISOString()} - ${msg}\n`);
+
+log("--- Server starting ---");
+process.on('uncaughtException', (err) => {
+    log(`CRITICAL ERROR: ${err.stack || err}`);
+    process.exit(1);
+});
+
 // Internal state
 const activeProcesses = {}; // { profileName: childProcess }
 
