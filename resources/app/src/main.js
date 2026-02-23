@@ -1,11 +1,14 @@
+const { app, BrowserWindow, ipcMain, Tray, Menu, dialog } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
 const fs = require('fs');
 
-const LOG_FILE = path.join(app.getPath('userData'), 'main_process.log');
+// Log file needs to be defined after app is ready or use a fixed path initially if top-level
+let LOG_FILE;
 const log = (msg) => {
     console.log(msg);
-    fs.appendFileSync(LOG_FILE, `${new Date().toISOString()} - ${msg}\n`);
+    if (!LOG_FILE && app.isReady()) LOG_FILE = path.join(app.getPath('userData'), 'main_process.log');
+    if (LOG_FILE) fs.appendFileSync(LOG_FILE, `${new Date().toISOString()} - ${msg}\n`);
 };
 
 let mainWindow;
