@@ -1,0 +1,15 @@
+{
+    "setupTitle": "EDManager - Server Manager",
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "backups": "Backups",
+    "discord": "Discord",
+    "console": "Console",
+    "start": "Start",
+    "stop": "Stop",
+    "save": "Save",
+    "cpuUsage": "CPU Usage",
+    "ramUsage": "RAM Usage",
+    "profileSelect": "Select Profile",
+    "newProfile": "New Profile"
+}

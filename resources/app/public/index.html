@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDManager - Professional Enshrouded Manager</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="dark-theme">
+    <!-- Setup / Profile Select Overlay -->
+    <div id="setup-overlay" class="overlay" style="display: none;">
+        <div class="modal-card">
+            <h2 id="setup-title">Szerver Menedzser</h2>
+            <div id="profile-list-area">
+                <p id="setup-desc">Válassz szervert vagy hozz létre újat:</p>
+                <div id="profiles-grid" class="profiles-grid"></div>
+                <button class="btn btn-primary w-100 mt-3" onclick="showNewProfileForm()">
+                    <i class="fa-solid fa-plus"></i> Új Szerver Hozzáadása
+                </button>
+            </div>
+
+            <div id="new-profile-form" style="display: none;">
+                <h3 id="new-profile-title">Új Szerver Profil</h3>
+                <div class="form-group mt-3">
+                    <label>Profil Neve</label>
+                    <input type="text" id="new-prof-name" class="form-control" placeholder="Pl. Enshrouded Server 1">
+                </div>
+                <div class="form-group mt-3">
+                    <label>Szerver Mappa</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="new-prof-path" class="form-control">
+                        <button class="btn btn-secondary" onclick="browseFolder('new-prof-path')">
+                            <i class="fa-solid fa-folder-open"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-row mt-4">
+                    <button class="btn btn-secondary" onclick="showProfileSelect()">Mégse</button>
+                    <button class="btn btn-success" onclick="createNewProfile()">Létrehozás</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" style="display: none;">
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fa-solid fa-rocket"></i>
+                <span>EDManager</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="active" id="nav-dashboard" onclick="showTab('dashboard')"><i
+                        class="fa-solid fa-gauge"></i> <span class="nav-text">Dashboard</span></a>
+                <a href="#" id="nav-settings" onclick="showTab('settings')"><i class="fa-solid fa-sliders"></i> <span
+                        class="nav-text">Settings</span></a>
+                <a href="#" id="nav-backups" onclick="showTab('backups')"><i class="fa-solid fa-box-archive"></i> <span
+                        class="nav-text">Backups</span></a>
+                <a href="#" id="nav-discord" onclick="showTab('discord')"><i class="fa-brands fa-discord"></i> <span
+                        class="nav-text">Discord</span></a>
+                <a href="#" id="nav-console" onclick="showTab('console')"><i class="fa-solid fa-terminal"></i> <span
+                        class="nav-text">Console</span></a>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="btn btn-ghost" onclick="showProfileSelect()"><i class="fa-solid fa-repeat"></i> Profil
+                    Váltás</button>
+                <div class="app-version">v1.0.0 Stable</div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="active-profile-info">
+                    <span id="header-profile-name">Választott Szerver</span>
+                    <div id="status-badge" class="badge">Checking...</div>
+                </div>
+                <div class="top-actions">
+                    <button class="btn btn-success" id="btn-start" onclick="startServer()"><i
+                            class="fa-solid fa-play"></i> Start</button>
+                    <button class="btn btn-danger" id="btn-stop" onclick="stopServer()"><i
+                            class="fa-solid fa-power-off"></i> Stop</button>
+                    <button class="btn btn-secondary" onclick="minimizeToTray()"><i
+                            class="fa-solid fa-window-minimize"></i></button>
+                </div>
+            </header>
+
+            <div class="scroll-area">
+                <!-- Dashboard Tab -->
+                <section id="tab-dashboard" class="tab-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <i class="fa-solid fa-microchip"></i>
+                            <div class="stat-info">
+                                <span class="label">CPU Usage</span>
+                                <span class="value" id="cpu-current">0%</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fa-solid fa-memory"></i>
+                            <div class="stat-info">
+                                <span class="label">RAM Usage</span>
+                                <span class="value" id="ram-current">0 MB</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container card mt-4">
+                        <h3>Resource History (Performance History)</h3>
+                        <canvas id="resourceChart"></canvas>
+                    </div>
+                </section>
+
+                <!-- Settings Tab -->
+                <section id="tab-settings" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <h3>Szerver Konfiguráció</h3>
+                        <div class="form-grid mt-3">
+                            <div class="form-group">
+                                <label>Szerver Megnevezése</label>
+                                <input type="text" id="cfg-server-name" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Belépési Jelszó</label>
+                                <input type="text" id="cfg-password" class="form-control">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mt-4" onclick="saveServerConfig()">Šinkronizáció és
+                            Mentés</button>
+                    </div>
+
+                    <div class="card mt-4">
+                        <h3>Manager Beállítások</h3>
+                        <div class="form-group">
+                            <label>Alkalmazás Nyelve</label>
+                            <select id="mgr-lang" class="form-control w-auto" onchange="changeLanguage()">
+                                <option value="hu">Magyar</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Backups Tab -->
+                <section id="tab-backups" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <h3>Biztonsági Mentések</h3>
+                        <p class="muted">Készíts manuális mentést, vagy konfiguráld az automatikus ütemezést.</p>
+                        <div class="flex-row mt-3">
+                            <button class="btn btn-success" onclick="createBackup()"><i class="fa-solid fa-plus"></i> Új
+                                Mentés Készítése</button>
+                        </div>
+                        <div class="backup-list mt-4" id="backup-list">
+                            <!-- Backup items -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Discord Tab -->
+                <section id="tab-discord" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <h3>Discord Webhook Konfiguráció</h3>
+                        <div class="form-group mt-3">
+                            <label>Webhook URL</label>
+                            <input type="text" id="webhook-url" class="form-control"
+                                placeholder="https://discord.com/api/webhooks/...">
+                        </div>
+                        <div class="form-grid mt-3">
+                            <div class="form-group">
+                                <label>Indítási üzenet</label>
+                                <input type="text" id="webhook-start-msg" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>Leállítási üzenet</label>
+                                <input type="text" id="webhook-stop-msg" class="form-control">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary mt-4" onclick="saveWebhookSettings()">Mentés</button>
+                    </div>
+
+                    <div class="card mt-4">
+                        <h3>Adminisztrátori Üzenet</h3>
+                        <p class="muted">Küldj azonnali üzenetet a Discord csatornára (pl. frissítés jelzése).</p>
+                        <textarea id="admin-discord-msg" class="form-control mt-2" rows="3"
+                            placeholder="Írd ide az üzenetet..."></textarea>
+                        <button class="btn btn-discord mt-3" onclick="sendAdminWebhook()">
+                            <i class="fa-brands fa-discord"></i> Üzenet Küldése
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Console Tab -->
+                <section id="tab-console" class="tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="flex-row justify-between">
+                            <h3>Szerver Console</h3>
+                            <button class="btn btn-ghost" onclick="clearConsole()"><i class="fa-solid fa-trash"></i>
+                                Napló Ürítése</button>
+                        </div>
+                        <div id="console-view" class="console-box mt-3">
+                            <span class="muted">A konzol csak futó szervernél aktív...</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast" class="toast" style="display: none;"></div>
+
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" class="overlay" style="display: none; z-index: 2000;">
+        <div class="modal-card small">
+            <h3 id="confirm-title">Megerősítés</h3>
+            <p id="confirm-msg" class="mt-2">Biztosan végrehajtod ezt a műveletet?</p>
+            <div class="flex-row mt-4">
+                <button class="btn btn-secondary" onclick="closeConfirm()">Mégse</button>
+                <button class="btn btn-danger" id="btn-confirm-ok">Végrehajtás</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

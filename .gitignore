@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+dist/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+
+# Built binaries (only keep source on repo)
+*.exe
+*.zip
+*.bak
+data/
+profiles.json
+settings.json
+templates.json

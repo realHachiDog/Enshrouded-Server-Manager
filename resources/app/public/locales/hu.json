@@ -1,0 +1,15 @@
+{
+    "setupTitle": "EDManager - Szerver Menedzser",
+    "dashboard": "Vezérlőpult",
+    "settings": "Beállítások",
+    "backups": "Mentések",
+    "discord": "Discord",
+    "console": "Konvol",
+    "start": "Indítás",
+    "stop": "Leállítás",
+    "save": "Mentés",
+    "cpuUsage": "CPU Használat",
+    "ramUsage": "RAM Használat",
+    "profileSelect": "Profil választás",
+    "newProfile": "Új Profil"
+}
