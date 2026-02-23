@@ -75,7 +75,13 @@ app.whenReady().then(() => {
         });
 
         serverProcess.stdout.on('data', (data) => log(`[Server STDOUT] ${data}`));
-        serverProcess.stderr.on('data', (data) => log(`[Server STDERR] ${data}`));
+        serverProcess.stderr.on('data', (data) => {
+            const msg = data.toString();
+            log(`[Server STDERR] ${msg}`);
+            // Also write to a dedicated error log
+            const errorLogPath = path.join(app.getPath('userData'), 'server_error.log');
+            fs.appendFileSync(errorLogPath, `${new Date().toISOString()} - ${msg}\n`);
+        });
 
         serverProcess.on('error', (err) => log(`[Server Error] ${err.message}`));
         serverProcess.on('exit', (code) => {
